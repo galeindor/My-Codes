@@ -1,0 +1,198 @@
+/*
+ex3c
+majority of even numbers sub tree
+=====================================================
+this program is creating a sorted binary tree from input
+* input stops at end of file
+then the program returns the biggest sub tree that contains a majority
+of even numbers.
+* if both left and right sub trees that fullfil this condition are
+* in the same size , left side node will be returned.
+*/
+
+#include <iostream>
+#include <cstdlib>
+#include <iomanip>
+
+using std::cin;
+using std::cout;
+using std::endl;
+using std::cerr;
+
+//--------------------------------------------------------
+
+struct Node {
+	int _data;
+	struct Node* _left, *_right;
+};
+
+//-------------------------prototypes---------------------
+Node* build_tree();
+Node* new_node(int num);
+void insert_node(Node*& root, Node* node);
+void free_tree(Node* root);
+Node* biggest_more_even_subtree(Node* root, int& size, int& even, int& odd);
+bool is_more_even(Node* root, int& even, int& odd);
+Node* compare(Node*, Node*, int, int, int&);
+void find_biggest_even_majority(Node* root);
+
+
+//--------------------------------------------------------
+int main()
+{
+	Node* root;
+	root = build_tree();
+	find_biggest_even_majority(root);
+	free_tree(root);
+	return EXIT_SUCCESS;
+}
+
+//--------------------------------------------------------
+/* 
+this function will use functions to find the largest
+subtree that has a majority of even number values and print
+the result or "not found" if there isnt a subtree that fullfil 
+the condition.
+ */
+void find_biggest_even_majority(Node* root)
+{
+	int size, even, odd;
+	size = even = odd = 0;
+
+	Node* node = biggest_more_even_subtree(root, size, even, odd);
+
+	if (node != nullptr)
+		cout << node->_data << endl;
+	// print the value of the root for the sub tree.
+
+	else
+		cout << "NOT FOUND";
+	// if not found print the error.
+
+}
+
+//--------------------------------------------------------
+// this function will find the largest subtree that contain 
+// a majority of even numbers.
+Node* biggest_more_even_subtree(Node* root, int& size, int& even, int& odd)
+{
+	Node* bigl, * bigr;
+	int size_bigl, size_bigr;
+	int evenl = 0, oddl = 0;
+	int evenr = 0, oddr = 0;
+
+	if (!root)
+	{
+		even = 0;
+		odd = 0;
+		size = 0;
+		return nullptr;
+	}
+
+	bigl = biggest_more_even_subtree(root->_left, size_bigl, evenl, oddl);
+	bigr = biggest_more_even_subtree(root->_right, size_bigr, evenr, oddr);
+
+	even = evenl + evenr;
+	odd = oddl + oddr;
+
+	if (is_more_even(root, even, odd))
+	{
+			size = even + odd;
+			return root;
+	}
+
+	return compare(bigl, bigr , size_bigl, size_bigr, size);
+}
+
+// --------------------------------------------------------
+bool is_more_even(Node* root, int& even, int& odd)
+{
+
+	(root->_data % 2 == 0) ? even++ : odd++;
+
+	return even > odd;
+}
+
+//------------------------------------------------------------------
+
+Node* compare(Node* left, Node* right, int size_l, int size_r, int& max)
+{
+	if (size_r > size_l)
+		// if right sub tree is bigger than the left subtree
+	{
+		max = size_r;
+		return right;
+	}
+	else
+		// if left sub tree is bigger or equal to the right subtree
+	{
+		max = size_l;
+		return left;
+	}
+}
+
+//------------------------------------------------------------------
+
+//this func builds a new binary tree using inputs until end of file.
+Node* build_tree()
+{
+	Node* root = NULL;
+	int num;
+	cin >> num;
+	while (!cin.eof())
+	{
+		Node* node = new_node(num);
+		insert_node(root, node);
+		cin >> num;
+	}
+	return root;
+}
+
+//--------------------------------------------------------
+// allocate memory for a new node and set its data by parameter.
+Node* new_node(int num)
+{
+	Node* node = new (std::nothrow) Node;
+	if (!node)
+	{
+		cerr << "problem in allocation" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	node->_data = num;
+	node->_left = node->_right = NULL;
+	return node;
+}
+
+//--------------------------------------------------------
+
+// this func will take the new node and check where it belongs 
+// according to the nodes data.
+// the binary tree will be sorted in the a way that left <= root < right.
+
+void insert_node(Node*& root, Node* node)
+{
+	// if root is null we found the place to insert the node
+	if (!root)
+		root = node;
+
+	// move left if the value  <= than the root value.	
+	else if (node->_data <= root->_data)
+		insert_node(root->_left, node);
+
+	// move right if the value is greater than the root value.
+	else
+		insert_node(root->_right, node);
+}
+
+//--------------------------------------------------------
+// free the memory allocated for the binary tree
+void free_tree(Node* root)
+{
+	if (!root)
+		return; // if root is null , no need to delete.
+
+	free_tree(root->_left); //delete left sub tree
+	free_tree(root->_right); // delete right sub tree
+	delete root; // delete the memory allocated to the node.
+}
