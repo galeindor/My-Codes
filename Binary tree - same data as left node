@@ -1,0 +1,147 @@
+/*ex3a
+left equals root
+=====================================================
+this program is creating a sorted binary tree from input
+* input stops at end of file
+then the program returns how many nodes have the same value as
+the node in their _left section.
+*/
+
+//--------------------include section-----------------------
+
+#include <iostream>
+#include <cstdlib>
+#include <iomanip>
+
+
+//--------------------using section-------------------------
+using std::cin;
+using std::cout;
+using std::endl;
+using std::cerr;
+
+//-------------------structs section-------------------------
+
+struct Node
+{ // a node inside a binary tree of nodes
+	int		_data; // node data
+	Node* _left, * _right;
+	// node pointers to the left and right in the tree
+};
+
+//-------------------------prototypes---------------------
+
+Node* build_tree();
+Node* new_node(int num);
+void insert_node(Node*& root, Node* node);
+void free_tree(Node* root);
+int equal_to_left(Node* root);
+
+//-----------------------main-----------------------------
+int main()
+{
+	Node* root;
+	root = build_tree(); // create a tree
+	cout << equal_to_left(root);
+	// print the number of nodes that equal to the node on their left.
+
+	free_tree(root); // free memory for the tree.
+	return EXIT_SUCCESS;
+}
+
+//--------------------------------------------------------
+
+/* 
+this func will calculate how many nodes have the same value in data
+section as the data of the node in _left section.
+(root->_left->_data == root->_data)
+*/
+int equal_to_left(Node* root)
+{
+	// if the node or the left node are null - return 0;
+	if (!root || !root->_left)
+		return 0;
+
+	Node* left = root->_left; // temp node to save the left node;
+
+	// if same data return 1 plus the sub trees returned value.
+	if (root->_data == left->_data)
+	{
+		return 1 + equal_to_left(root->_left)
+			+ equal_to_left(root->_right);
+	}
+
+	// if root and left doesnt have same data 
+	// return the sub trees returned value
+	return equal_to_left(root->_left) + equal_to_left(root->_right);
+}
+
+//--------------------------------------------------------
+
+//this func builds a new binary tree using inputs until end of file.
+Node* build_tree()
+{
+	Node* root = NULL;
+	int num; // input numbers
+	cin >> num;
+	while (!cin.eof()) // while not end of file.
+	{
+		Node* node = new_node(num); // create a new node
+		insert_node(root, node); // add the node to the tree
+		cin >> num; // get another number.
+	}
+	return root; // return the root of the tree.
+}
+
+//--------------------------------------------------------
+
+// allocate memory for a new node and set its data by parameter.
+Node* new_node(int num)
+{
+	Node* node = new (std::nothrow) Node;
+	if (!node)
+	{
+		cerr << "problem in allocation" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	node->_data = num; // set the data to be the number.
+	node->_left = node->_right = NULL;
+	// reset the left and right of the node.
+	return node; // return the node
+}
+
+//--------------------------------------------------------
+
+// this func will take the new node and check where it belongs 
+// according to the nodes data.
+// the binary tree will be sorted in the a way that left <= root < right.
+
+void insert_node(Node*& root, Node* node)
+{
+	// if root is null we found the place to insert the node
+	if (!root)
+		root = node;
+
+	// move left if the value  <= than the root value.	
+	else if (node->_data <= root->_data)
+		insert_node(root->_left, node);
+
+	// move right if the value is greater than the root value.
+	else
+		insert_node(root->_right, node);
+}
+
+
+//--------------------------------------------------------
+// free the memory allocated for the binary tree
+
+void free_tree(Node* root)
+{
+	if (!root)
+		return; // if root is null , no need to delete.
+
+	free_tree(root->_left); //delete left sub tree
+	free_tree(root->_right); // delete right sub tree
+	delete root; // delete the memory allocated to the node.
+}
