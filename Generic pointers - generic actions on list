@@ -1,0 +1,287 @@
+/*
+find nodes in linked list
+========================================================================
+Written by: gal ein-dor , id = 209070671, login = galei
+*
+this program will make a two-sided linked list of nodes and find the
+first node in the list that fullfil a certion condition , the program will
+use a generic function that gets the condition and the direction we search
+the node from ( normal or backwards run on the array).
+the node can be searched from the start of the array or from the
+end of the array and the program will return:
+
+* the first node in an initial search that its data is an even number.
+
+* the first node in a backwards search that its data is an even number.
+
+* the first node in an initial search that its data is a prime number.
+
+* the first node in a backwards search that its data is a prime number.
+
+* the first node in an initial search that its data is a number that
+  can be read the same backwards(polindrome).
+
+* the first node in a backwards search that its data is a number that
+  can be read the same backwards(polindrome).
+
+the results of the outputs will be sent to another struct named
+that will save the average and the id of the student/course
+that has the highest average for each average check, then the program
+will also return:
+* the id of the student with the highest grades average.
+* the id of the course with the highest number of hours .
+
+*/
+
+#include <iostream>
+#include <cstdlib>
+#include <iomanip>
+
+using std::cin;
+using std::cout;
+using std::endl;
+using std::cerr;
+
+//---------------------------------------------------------------------
+
+struct Node {
+	int _data; // data value of the node
+	struct Node* _next, // next node in the list
+		* _prev; // previous node in the list
+};
+
+typedef bool(*check_node_func)(Node*);
+/*  generic function pointer to the function that will test if the node
+	sent fullfil a conditionthe condition will change acordding
+	to the function the pointer is pointing at.
+*/
+typedef void(*mov_func)(Node*&);
+// generic function pointer to the function that will move across the 
+// list the direction will change acordding to the function the pointer
+// is pointing at.
+
+//-------------------------prototypes----------------------------------
+
+void build_list(Node*& first, Node*& last);
+
+Node* new_node(int data);
+
+Node* find_in_list(Node* node, check_node_func check_node ,mov_func movement);
+
+bool check_positive(Node* first);
+bool check_prime(Node* first);
+bool check_polindrome(Node* first);
+
+void initial_order(Node*& node);
+void reversed_order(Node*& node);
+
+bool is_prime(int num);
+bool is_polindrome(int num);
+int absolute_value(int num);
+
+void print_node(const Node* node);
+void print_results(Node* first, Node* last);
+void free_list(Node* root);
+//---------------------------------------------------------------------
+int main()
+{
+	struct Node* first, * last;
+	build_list(first, last);
+	print_results(first, last);
+	free_list(first);
+	last = nullptr;
+	return EXIT_SUCCESS;
+}
+//----------------------------------------------------------------------
+void print_results(Node* first, Node* last)
+{
+	print_node(find_in_list(first, check_positive, initial_order));
+	cout << " ";
+	print_node(find_in_list(last, check_positive, reversed_order));
+	cout << " ";
+	print_node(find_in_list(first, check_prime, initial_order));
+	cout << " ";
+	print_node(find_in_list(last, check_prime, reversed_order));
+	cout << " ";
+	print_node(find_in_list(first, check_polindrome, initial_order));
+	cout << " ";
+	print_node(find_in_list(last, check_polindrome, reversed_order));
+	cout << endl;
+}
+//----------------------------------------------------------------------------
+// build a list from numbers read from user, end list when
+// user input is 0
+
+void build_list(Node*& first, Node*& last)
+{
+	first = last = NULL; // reset the first and last nodes.
+	int num; // number input
+	cin >> num; // get input
+	while (!cin.eof())
+	{
+		Node* node = new_node(num); // new node to insert.
+		if (!first) //build first node
+			first = node;
+		else
+		{ // add the node to the list
+			last->_next = node;
+			node->_prev = last;
+		}
+		last = node; // set the last node in the list
+		cin >> num; // get another input
+	}
+}
+
+// ---------------------------------------------------------------------------
+
+// allocate memory for a new_node
+Node* new_node(int data)
+{
+	Node* node = new (std::nothrow) Node;
+	if (!node)
+	{
+		cerr << "Error in allocation" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	node->_data = data;
+	node->_prev = NULL;
+	node->_next = NULL;
+	return node;
+}
+
+//----------------------------------------------------------------------------
+/* this function is using generic functions to find the first node
+in the list that fullfil a condition.
+the function gets 3 nodes pointers parameters:
+node : the node we need to check ,this node can either start
+	from first node and become first->next until the end of the list
+	or from last and go backwards.
+check_node : function pointer , will determine the condition for the node
+movement : function pointer , will determine the direction for the node
+			(if node will start from first >>> last or last >>> first)
+*/
+Node* find_in_list(Node* node, check_node_func check_node, mov_func movement)
+{
+	if (!node)
+		return NULL;
+	while (node != NULL)
+	{
+		if (check_node(node))
+			return node;
+		movement(node);
+	}
+}
+
+//--------------------------------------------------------
+
+// function to move across the list in from the start
+// to the end of the list.
+void initial_order(Node*& node)
+{
+	node = node->_next; // move the node to the next node
+}
+
+//---------------------------------------------------------
+
+// function to move across the list in from the end
+// to the start of the list ( backwards ).
+void reversed_order(Node*& node)
+{
+	node = node->_prev; // move the node to the prev node
+}
+
+//---------------------------------------------------------
+
+// function to check if the node contains a positive number
+bool check_positive(Node* first)
+{
+	return (first->_data > 0);
+}
+
+//--------------------------------------------------------------------
+
+// function to check if the node contains a prime number
+bool check_prime(Node* first)
+{
+	return is_prime(first->_data);
+}
+
+//----------------------------------------------------------------------
+
+// function to check if the node contains a number that is a polindrome.
+bool check_polindrome(Node* first)
+{
+	return is_polindrome(absolute_value(first->_data));
+}
+
+//----------------------------------------------------------------------
+
+// function to check if a number is a polindrome.
+bool is_polindrome(int num)
+{
+	int reversed_num = 0, digit;
+	int copy_num = num;
+	do
+	{
+		digit = copy_num % 10; //takes the remainder 
+		reversed_num = (reversed_num * 10) + digit;
+		//creating the reversed number
+		copy_num = copy_num / 10; //creating new number 
+
+	} while (copy_num != 0);
+
+	if (num == reversed_num)
+		return true;
+	return false;
+}
+
+//----------------------------------------------------------------------
+
+// function to check whether a number is prime or not
+bool is_prime(int num)
+{
+	if (num <= 1) // numbers lower than 2 arent prime.
+		return false;
+
+	for (int i = 2; i < num; i++)
+	{ // check dividence from 2 to num -1
+		if (num % i == 0)
+			return false;
+	}
+	return true;
+}
+
+//--------------------------------------------------------------------
+// function to find the absolute value of a number.
+
+int absolute_value(int num)
+{
+	if (num < 0)
+		return (-1) * num;
+	return num;
+}
+
+//---------------------------------------------------------------------
+// function to print the data of a node , if the node is null , print 0
+void print_node(const Node* node)
+{
+	if (!node)
+		cout << 0;
+	else
+		cout << node->_data;
+}
+
+//---------------------------------------------------------------------
+
+void free_list(Node* head)
+{
+	Node* temp;
+	while (head)
+	{
+		temp = head->_next;
+		delete head;
+		head = temp;
+	}
+	delete head;
+}
