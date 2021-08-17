@@ -1,0 +1,327 @@
+/*
+
+statistics about students and courses
+========================================================================
+Written by: gal ein-dor , id = 209070671, login = galei
+this program will make an array of each from two structs:
+
+* Stud struct that contain data about a student , such as student id,
+  array of grades and the height of the student.
+* Course struct that contains data about a course , such as course id,
+  number of credit points the course provides and the total of hours
+  the course is.
+
+the program will be using generic functions to calculate different
+averages about the structs , the input of the functions will be
+determined by the functions sent , for example , if we want to calculate
+the average of grades of all students we will sent a specific set of
+functions that will get those values and calculate their average.
+the program will be returning all the following averages:
+* average of grades from all students in array.
+* average of the heights of all students in array.
+* average of the credit points given by all the courses in array.
+* average of the number of hours of all the courses in array.
+
+the results of the outputs will be sent to another struct named
+that will save the average and the id of the student/course
+that has the highest average for each average check, then the program
+will also return:
+* the id of the student with the highest grades average.
+* the id of the course with the highest number of hours .
+
+*/
+
+#include <iostream>
+#include <cstdlib>
+#include <iomanip>
+
+using std::cin;
+using std::cout;
+using std::endl;
+using std::cerr;
+
+//==========================consts and structs==========================
+
+const int NUM_OF_GRADES = 7; // number of grades
+const int CLASS_SIZE = 10; // number of students
+const int NUM_OF_COURSES = 10; // number of courses
+
+struct Stud {
+	int _stud_id; // student id
+	int _grades[NUM_OF_GRADES]; // student grade
+	double _height; // student height
+};
+struct Course {
+	int _course_id; // course id
+	double	_points_credit; // points credit the course gives.
+	unsigned int _hours_of_course; // course hours lenght
+};
+
+struct Result {
+	double _average; // average result of the value from the array.
+	int _id_of_biggest;
+	// id of the cell in the array that has the largest value.
+};
+
+
+typedef double(*get_value_func)(const void*);
+/*
+ generic function pointer to the function that will return some data
+ about a course/student , the data will be determined by the function
+ it points to.
+*/
+
+typedef void* (*get_elem_func)(const void*, int);
+/*
+ generic function pointer to the function that will return
+ the arr[i], can be either the Stud array of Courses array,
+ returned array cell will be determined by the function
+ it points to.
+*/
+
+typedef int(*find_id_func)(const void*, int);
+/*
+ generic function pointer to the function that will return the id
+ of the student or course sent as parameter.
+*/
+//========================-prototypes//=================================
+
+void read_students(Stud studs[]);
+void read_courses(Course courses[]);
+
+Result calculate_average
+(const void* arr, const int limit, get_value_func get_value,
+	get_elem_func get_elem, find_id_func find_id);
+
+double course_hours(const void* elem);
+double course_points(const void* elem);
+double stud_grades_avg(const void* elem);
+double stud_height(const void* elem);
+
+void* get_stud_elem(const void* arr, int index);
+void* get_course_elem(const void* arr, int index);
+
+void find_results(const Stud studs[], const Course courses[]);
+void print_result(const Result results[]);
+
+int	id_of_stud(const void* arr, int index);
+int id_of_course(const void* arr, int index);
+
+//======================================================================
+int main()
+{
+	struct Stud studs[CLASS_SIZE];
+	struct Course courses[NUM_OF_COURSES];
+	read_students(studs);
+	read_courses(courses);
+	find_results(studs, courses);
+	return EXIT_SUCCESS;
+}
+//======================================================================
+// this function will get the array and use the generic average calculate
+// function will different values to get different outputs.
+// the function will also use the print_results function to print the
+// results we got.
+void find_results(const Stud studs[], const Course courses[])
+{
+	Result results[4];
+
+	results[0] = calculate_average(studs, CLASS_SIZE,
+		stud_grades_avg, get_stud_elem, id_of_stud);
+
+	results[1] = calculate_average(studs, CLASS_SIZE,
+		stud_height, get_stud_elem, id_of_stud);
+
+	results[2] = calculate_average(courses, NUM_OF_COURSES,
+		course_points, get_course_elem, id_of_course);
+
+	results[3] = calculate_average(courses, NUM_OF_COURSES,
+		course_hours, get_course_elem, id_of_course);
+
+	print_result(results);
+}
+
+//====================================================================-
+// get data for the array of students.
+void read_students(Stud studs[])
+{
+	int id = 1, grade = 0; // data of a student
+	for (size_t i = 0; i < CLASS_SIZE && id != 0; i++)
+	{ // i = student index
+		cin >> id; // get id
+		studs[i]._stud_id = id; // set the student id
+
+		if (id != 0)
+		{
+			for (size_t j = 0; j < NUM_OF_GRADES && grade != -1; j++)
+			{  // j = grade index
+				cin >> grade; // get new grade
+				studs[i]._grades[j] = grade;
+			}
+			grade = 0;
+			cin >> studs[i]._height; // set the student height
+		}
+	}
+}
+
+//======================================================================
+// this function will read data to the array of students.
+void read_courses(Course courses[])
+{
+	int id = 1; // id of the course
+
+	for (size_t i = 0; i < NUM_OF_COURSES && id != 0; i++)
+	{ // i = course index
+
+		cin >> id; // get course id
+		courses[i]._course_id = id; // set the course id
+
+		if (id != 0)
+		{ // get the rest of the data of the course if id != 0
+
+			cin >> courses[i]._hours_of_course;
+			cin >> courses[i]._points_credit;
+		}
+	}
+}
+
+//====================================================================-
+/*
+ this function will use generic functions and return the average of
+ data that will be determined by the functions used.
+ arr: the array of data , the array is generic so the data could
+	  be either Stud or Course, but could be any type wanted.
+*limit :max possible size of the array
+
+*get_value : a generic function pointer that will return data about the
+ student / course sent , the returned value will be double value.
+ the returned value is depending on the function pointed at.
+
+*get_elem : a generic function pointer to the function that will return
+ the arr[i] of the array type that we need ( Stud/Course).
+
+*find_id : a generic function pointer that will return the id of
+the course or student that this function gets.
+
+the function will return a Result struct output with the average
+and the id of the cell with the highest value.
+*/
+Result calculate_average
+(const void* arr, const int limit,
+	get_value_func get_value, get_elem_func get_elem, find_id_func find_id)
+{
+	Result result; // result struct to return the result.
+	double sum_of_values = 0; // sum of the values from the array.
+	double value, max_value = 0;
+	// value is the current value 
+	// max_value is the maximum value in the array.
+	int index = 0; // number of cells in the array.
+	for (; index < limit && find_id(arr, index) != 0; index++)
+	{
+		value = get_value(get_elem(arr, index)); // get the value
+		sum_of_values += value; // sum the values
+		if (value > max_value)
+		{ // check for biggest value
+			result._id_of_biggest = find_id(arr, index);
+			max_value = value;
+		}
+	}
+
+	if (index == 0) // if the array in empty
+	{
+		result._average = 0;
+		result._id_of_biggest = 0;
+		return result;
+	}
+	result._average = sum_of_values / index; // calculate the average
+	return result;
+}
+
+//====================================================================-
+// function to find the height of a studenst.
+double stud_height(const void* elem)
+{
+	Stud* stud = (Stud*)elem;
+	return (double)stud->_height; // return the height.
+}
+
+//======================================================================
+// func to return the average of a student grades
+double stud_grades_avg(const void* elem)
+{
+	Stud* stud = (Stud*)elem;
+	int sum = 0;  // sum the grades
+	int length = 0;
+	// length is the size of the grades array.
+	for (int i = 0; i < NUM_OF_GRADES && stud->_grades[i] != -1; i++)
+	{ // i = grade index
+		sum += (stud->_grades[i]);
+		length++;
+	}
+	return sum / length; // return the average of the grades.
+}
+//====================================================================-
+// function to return the number of points credit a course has.
+double course_points(const void* elem)
+{
+	Course* course = (Course*)elem;
+	return course->_points_credit; // return the points credit.
+}
+
+//======================================================================
+// function to return the number of hours a course has
+double course_hours(const void* elem)
+{
+	Course* course = (Course*)elem;
+	return course->_hours_of_course; // return the hours of course.
+}
+
+//======================================================================
+// function to return the value in the students array in the index
+void* get_stud_elem(const void* arr, int index)
+{
+	return (Stud*)arr + index; // return studs[index]
+}
+
+//======================================================================
+// function to return the value in the courses array in the index.
+
+void* get_course_elem(const void* arr, int index)
+{
+	return (Course*)arr + index; //return courses[index]
+}
+
+//======================================================================
+// function to print the results as needed
+
+void print_result(const Result results[])
+{
+	for (size_t i = 0; i < 4; i++) // print the average for all results.
+	{
+		cout << results[i]._average << " ";
+	}
+	cout << results[0]._id_of_biggest << " ";
+	// print the id of the student with highest grades average
+
+	cout << results[3]._id_of_biggest << endl;
+	// print the id of the course with the highest number of hours.
+}
+
+//======================================================================
+
+// function to check the id of studs[index].
+
+int id_of_stud(const void* arr, int index)
+{
+	Stud* stud = (Stud*)arr + index;
+	return stud->_stud_id; // return the student id.
+}
+
+//======================================================================
+// function to check the id of courses[index]. 
+
+int id_of_course(const void* arr, int index)
+{
+	Course* course = (Course*)arr + index;
+	return course->_course_id; // return the course id.
+}
